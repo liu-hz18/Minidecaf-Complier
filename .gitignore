@@ -6,3 +6,4 @@ generated_java
 *.s
 *.out
 *.c
+run.sh

@@ -12,25 +12,11 @@ Lparen : '(';
 Rparen : ')';
 Lbrace : '{';
 Rbrace : '}';
+Comma  : ',';
 Semicolon : ';';
 
 Punctuator :
-    Lparen | Rparen | Lbrace | Rbrace | Semicolon
-    ;
-
-UnOperator: 
-    '-' | '~' | '!'
-    ;
-
-// bi-op
-Add : '+';
-Sub : '-';
-Mul : '*';
-Div : '/';
-Mod : '%';
-
-BiOperator :
-    Add | Sub | Mul | Div | Mod
+    Lparen | Rparen | Lbrace | Rbrace | Semicolon | Comma
     ;
 
 fragment WhitespaceChar : [ \t\n\r];
