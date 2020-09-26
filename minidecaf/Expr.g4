@@ -25,7 +25,8 @@ blockitem
 statement
     : 'return' expr ';'   # RetStatement
     | expr? ';'           # ExprStatement
-    | 'if' '(' expr ')' statement ('else' statement)? # ifStatement         
+    | block               # BlockStatement
+    | 'if' '(' expr ')' thens=statement ('else' elses=statement)? # IfStatement         
     ;
 
 declaration
@@ -36,14 +37,13 @@ expr: assignment;
 
 assignment
     : conditional                     # SingleAssign
-    | Identifier '=' expr           # ComplexAssign
+    | Identifier '=' expr             # ComplexAssign
     ;
 
 conditional
-    : logicalOr
-    | logicalOr '?' expr ':' conditional
+    : logicalOr                             # SingleCond
+    | logicalOr '?' expr ':' conditional    # ComplexCond
     ;
-
 
 logicalOr
     : logicalAnd                    # SingleOr

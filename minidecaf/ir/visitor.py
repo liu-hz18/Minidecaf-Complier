@@ -126,6 +126,7 @@ class NameVisitor(ExprVisitor):
         
 
 class StackIRVisitor(ExprVisitor):
+    label_counter = {}
     def __init__(self, nameInfo:NameInfo):
         super(StackIRVisitor, self).__init__()
         self.ir_instructions = []
@@ -133,6 +134,14 @@ class StackIRVisitor(ExprVisitor):
         self.curFuncName = None
         self.curFuncParams = None
         self.ni = nameInfo
+        # labels
+        
+    def _createLabel(self, label="_L"):
+        if label in StackIRVisitor.label_counter:
+            StackIRVisitor.label_counter[label] += 1
+        else:
+            StackIRVisitor.label_counter[label] = 0
+        return f"{label}_{StackIRVisitor.label_counter[label]}"
 
     def visitBlock(self, ctx):
         self.visitChildren(ctx)
@@ -150,6 +159,37 @@ class StackIRVisitor(ExprVisitor):
         # exit
         self.funcs.append(IrFunction(self.curFuncName, self.curFuncParams, self.ir_instructions))
     
+    @overrides
+    def visitComplexCond(self, ctx:ExprParser.ComplexCondContext):
+        ctx.logicalOr().accept(self)
+        endLabel = self._createLabel("cond_end")
+        elseLabel = self._createLabel("cond_else")
+        self.ir_instructions.append(IrBranch("beqz", elseLabel))
+        
+        ctx.expr().accept(self)
+        self.ir_instructions.append(IrBranch("br", endLabel))
+        self.ir_instructions.append(IrLabel(elseLabel))
+        
+        ctx.conditional().accept(self)
+        self.ir_instructions.append(IrLabel(endLabel))
+    
+    @overrides
+    def visitIfStatement(self, ctx:ExprParser.IfStatementContext):
+        ctx.expr().accept(self)
+        endLabel = self._createLabel("if_end")
+        elseLabel = self._createLabel("if_else")
+        if ctx.elses is not None:
+            self.ir_instructions.append(IrBranch("beqz", elseLabel))
+            ctx.thens.accept(self)
+            self.ir_instructions.append(IrBranch("br", endLabel))
+            self.ir_instructions.append(IrLabel(elseLabel))
+            ctx.elses.accept(self)
+            self.ir_instructions.append(IrLabel(endLabel))
+        else:
+            self.ir_instructions.append(IrBranch("beqz", endLabel))
+            ctx.thens.accept(self)
+            self.ir_instructions.append(IrLabel(endLabel))
+
     @overrides
     def visitFuncDeclare(self, ctx:ExprParser.FuncDeclareContext):
         pass

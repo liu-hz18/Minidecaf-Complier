@@ -22,6 +22,8 @@ class AsmGenerator:
             IrLoad: self.genLoad,
             IrPop: self.genPop,
             IrFrameAddr: self.genFrameAddr,
+            IrBranch: self.genBranch,
+            IrLabel: self.genLabel,
             # IrFunction: self.genFunction,
         }
         
@@ -32,6 +34,9 @@ class AsmGenerator:
     def printCommandList(self, commands: List[AsmInstruction]):
         for command in commands:
             print(f"{command}", file=self.fout)
+
+    def genLabel(self, instruction:IrLabel):
+        self.printCommandList([AsmLabel(instruction.label)])
 
     def genRet(self, instruction:IrRet):
         self.printCommandList(ret(self._curFuncName))
@@ -56,7 +61,13 @@ class AsmGenerator:
     
     def genPop(self, instruction:IrPop):
         self.printCommandList([AsmComment("pop stack")] + pop())
-    
+        
+    def genBranch(self, instruction:IrBranch):
+        if instruction.op == 'br':
+            self.printCommandList([AsmComment("branch")] + br(instruction.label))
+        else:
+            self.printCommandList([AsmComment(f"branch on `{instruction.op}`")] + br_cond(instruction.op, instruction.label))        
+            
     def _genPrologue(self, instruction:IrFunction):
         self.printCommandList(
             [

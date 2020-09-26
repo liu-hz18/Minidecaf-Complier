@@ -141,3 +141,15 @@ def ret(funcname:str):
     return [
         f"j {funcname}_exit"
     ]
+
+@AsmFormatter
+def br(label:str):
+    return [f"j {label}"]
+
+@AsmFormatter
+def br_cond(op:str, label:str):
+    return [
+        f"lw t1, 0(sp)",
+        f"addi sp, sp, 4",
+        f"{op} t1, {label}",
+    ]
