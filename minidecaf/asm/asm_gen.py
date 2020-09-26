@@ -129,6 +129,6 @@ class AsmGenerator:
         )
 
     def generate(self, ir_visitor):
-        # print(ir_visitor.getIR())
+        print(ir_visitor.getIR(), file=sys.stderr)
         for function in ir_visitor.funcs:
             self.genFunction(function)

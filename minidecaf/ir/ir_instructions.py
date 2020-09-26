@@ -12,12 +12,12 @@ class IrConst(IrBaseInstraction):
         self.v = v
 
     def __str__(self):
-        return f"pushi {self.v}"
+        return f"\tpushi {self.v}"
 
 
 class IrRet(IrBaseInstraction):
     def __str__(self):
-        return f"ret"
+        return f"\tret"
 
 
 class IrUnary(IrBaseInstraction):
@@ -26,7 +26,7 @@ class IrUnary(IrBaseInstraction):
         self.op = unAryMap[op]
     
     def __str__(self):
-        return self.op
+        return '\t' + self.op
         
 class IrBinary(IrBaseInstraction):
     def __init__(self, op):
@@ -34,19 +34,19 @@ class IrBinary(IrBaseInstraction):
         self.op = binaryMap[op]
     
     def __str__(self):
-        return self.op
+        return '\t' + self.op
 
 class IrPop(IrBaseInstraction):
     def __str__(self):
-        return "pop"
+        return "\tpop"
     
 class IrLoad(IrBaseInstraction):
     def __str__(self):
-        return "load"
+        return "\tload"
     
 class IrStore(IrBaseInstraction):
     def __str__(self):
-        return "store"
+        return "\tstore"
 
 class IrFrameAddr(IrBaseInstraction):
     def __init__(self, offset:int):
@@ -54,7 +54,7 @@ class IrFrameAddr(IrBaseInstraction):
         self.offset = offset
 
     def __str__(self):
-        return f"frameaddr {self.offset}"
+        return f"\tframeaddr {self.offset}"
 
 class IrFunction(IrBaseInstraction):
     def __init__(self, name:str, nParams:int, instructions:List[IrBaseInstraction]):
@@ -87,4 +87,4 @@ class IrBranch(IrBaseInstraction):
         self.label = label
         
     def __str__(self):
-        return f"{self.op} {self.label}"
+        return f"\t{self.op} {self.label}"

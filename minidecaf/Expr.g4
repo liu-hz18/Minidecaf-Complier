@@ -37,7 +37,7 @@ expr: assignment;
 
 assignment
     : conditional                     # SingleAssign
-    | Identifier '=' expr             # ComplexAssign
+    | unary '=' expr             # ComplexAssign
     ;
 
 conditional

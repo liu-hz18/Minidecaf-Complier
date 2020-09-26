@@ -2,6 +2,8 @@ from ..generated.ExprVisitor import ExprVisitor
 from ..generated.ExprParser import ExprParser
 from .ir_instructions import *
 from overrides import overrides
+from copy import deepcopy
+import sys
 
 class Variable():
     _var_counter = {}
@@ -16,7 +18,7 @@ class Variable():
         self.size = size
     
     def __str__(self):
-        return f"{self.ident}({self.uid})"
+        return f"{self.ident}({self.uid}{self.offset})"
     
     def __repr__(self):
         return self.__str__()
@@ -51,13 +53,42 @@ class FuncNameInfo():
         return self.var[varstr]
 
 
+class StackDict():
+    def __init__(self):
+        self.accumulated_stack = [{}]
+        self.cur_stack = [{}]
+    
+    def __getitem__(self, key):
+        return self.accumulated_stack[-1][key]
+
+    def __setitem__(self, key, value):
+        self.accumulated_stack[-1][key] = self.cur_stack[-1][key] = value
+        
+    def __contains__(self, key):
+        return key in self.accumulated_stack[-1]
+    
+    def __len__(self):
+        return len(self.accumulated_stack[-1])
+    
+    def push(self):
+        self.accumulated_stack.append(deepcopy(self.accumulated_stack[-1]))
+        self.cur_stack.append({})
+    
+    def pop(self):
+        self.accumulated_stack.pop()
+        self.cur_stack.pop()
+    
+    def top(self):
+        return self.cur_stack[-1]
+
+
 class NameVisitor(ExprVisitor):
     def __init__(self):
         super(NameVisitor, self).__init__()
         self.nameInfo = NameInfo()
         self._curFuncNameInfo = None
         self._curNSlots = 0
-        self._v = {}
+        self._v = StackDict()
         self._nSlots = []
     
     def defVar(self, ctx, varstr, number=1):
@@ -65,19 +96,22 @@ class NameVisitor(ExprVisitor):
         var = self._v[varstr] = Variable(varstr,
                 -INT_BYTES * self._curNSlots, INT_BYTES * number)
         pos = (ctx.start.line, ctx.start.column)
-        self._curFuncNameInfo.bind(varstr, var, pos)
+        self._curFuncNameInfo.bind(ctx.Identifier(), var, pos)
     
     def useVar(self, ctx, varstr):
         var = self._v[varstr]
         pos = (ctx.start.line, ctx.start.column)
-        self._curFuncNameInfo.bind(varstr, var, pos)
+        self._curFuncNameInfo.bind(ctx.Identifier(), var, pos)
     
     def enterScope(self, ctx):
+        self._v.push()
         self._nSlots.append(self._curNSlots)
 
     def exitScope(self, ctx):
         self._curFuncNameInfo.blockSlots[ctx] = self._curNSlots - self._nSlots[-1]
         self._curNSlots = self._nSlots[-1]
+        self._v.pop()
+        self._nSlots.pop()
     
     @overrides
     def visitBlock(self, ctx):
@@ -90,7 +124,7 @@ class NameVisitor(ExprVisitor):
         if ctx.expr() is not None:
             ctx.expr().accept(self)
         varstr = str(ctx.Identifier().getText())
-        if varstr in self._v:
+        if varstr in self._v.top():
             raise Exception(f"redefinition of variable `{varstr}`")
         self.defVar(ctx, varstr, number=1)
     
@@ -108,7 +142,9 @@ class NameVisitor(ExprVisitor):
             raise Exception(f"redefnition of function `{funcName}`")
         funcNameInfo = FuncNameInfo(hasDef=True)
         self._curFuncNameInfo = self.nameInfo.funcs[funcName] = funcNameInfo
-        self.visitChildren(ctx)
+        self.enterScope(ctx.block())
+        self.visitChildren(ctx.block())
+        self.exitScope(ctx.block())
         self._curFuncNameInfo = None
         
     @overrides
@@ -206,16 +242,22 @@ class StackIRVisitor(ExprVisitor):
     
     @overrides
     def visitDeclaration(self, ctx:ExprParser.DeclareStatementContext):
-        var = self.ni[str(ctx.Identifier().getText())]
+        var = self.ni[ctx.Identifier()]
         if ctx.expr() is not None:
             ctx.expr().accept(self)
         else:
             self.ir_instructions.extend([IrConst(0)] * (var.size // INT_BYTES))
     
+    def _findIdentifier(self, ctx):
+        if isinstance(ctx, ExprParser.SingleUnaryContext):
+            return self._findIdentifier(ctx.primary())
+        elif isinstance(ctx, ExprParser.PrimaryContext):
+            return ctx.Identifier()
+    
     @overrides
     def visitComplexAssign(self, ctx:ExprParser.ComplexAssignContext):
         ctx.expr().accept(self)
-        var = self.ni[str(ctx.Identifier().getText())]
+        var = self.ni[self._findIdentifier(ctx.unary())]
         # ident
         if var.offset is None:
             self.ir_instructions.append(IrGlobalSymbol(var.ident))
@@ -225,7 +267,7 @@ class StackIRVisitor(ExprVisitor):
     
     @overrides
     def visitAtomIdentifier(self, ctx:ExprParser.AtomIdentifierContext):
-        var = self.ni[str(ctx.Identifier().getText())]
+        var = self.ni[ctx.Identifier()]
         self.ir_instructions.append(IrFrameAddr(var.offset))
         self.ir_instructions.append(IrLoad())
     
@@ -283,4 +325,4 @@ class StackIRVisitor(ExprVisitor):
         self.visitChildren(ctx)    
     
     def getIR(self):
-        return "main:\n\t" + '\n\t'.join(map(str, self.ir_instructions))
+        return "main:\n" + '\n'.join(map(str, self.ir_instructions))
