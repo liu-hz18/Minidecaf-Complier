@@ -129,6 +129,12 @@ class NameVisitor(ExprVisitor):
         self.defVar(ctx, varstr, number=1)
     
     @overrides
+    def visitForDeclareStatement(self, ctx):
+        self.enterScope(ctx)
+        self.visitChildren(ctx)
+        self.exitScope(ctx)
+    
+    @overrides
     def visitAtomIdentifier(self, ctx):
         varstr = str(ctx.Identifier().getText())
         if varstr not in self._v:
@@ -170,8 +176,22 @@ class StackIRVisitor(ExprVisitor):
         self.curFuncName = None
         self.curFuncParams = None
         self.ni = nameInfo
+        self.loopStart = []
+        self.loopEnd = []
         # labels
-        
+    
+    @property
+    def breakLabel(self):
+        if len(self.loopEnd) <= 0:
+            raise Exception("break not in a loop")
+        return self.loopEnd[-1]
+    
+    @property    
+    def continueLabel(self):
+        if len(self.loopEnd) <= 0:
+            raise Exception("continue not in a loop")
+        return self.loopStart[-1]
+    
     def _createLabel(self, label="_L"):
         if label in StackIRVisitor.label_counter:
             StackIRVisitor.label_counter[label] += 1
@@ -179,6 +199,62 @@ class StackIRVisitor(ExprVisitor):
             StackIRVisitor.label_counter[label] = 0
         return f"{label}_{StackIRVisitor.label_counter[label]}"
 
+    def _loop(self, name, pre, condition, body, post):
+        loopLabel = self._createLabel(f"{name}_pre")
+        if post is not None:
+            continueLabel = self._createLabel(f"{name}_continue")
+        else:
+            continueLabel = loopLabel
+        endLabel = self._createLabel(f"{name}_end")
+        self.loopStart.append(continueLabel)
+        self.loopEnd.append(endLabel)
+        if pre is not None:
+            pre.accept(self)
+            if isinstance(pre, ExprParser.ExprContext):
+                self.ir_instructions.append(IrPop())
+        self.ir_instructions.append(IrLabel(loopLabel))
+        if condition is not None:
+            condition.accept(self)
+        else:
+            self.ir_instructions.append(IrConst(1))
+        self.ir_instructions.append(IrBranch("beqz", endLabel))
+        body.accept(self)
+        if post is not None:
+            self.ir_instructions.append(IrLabel(continueLabel))
+            post.accept(self)
+            if isinstance(post, ExprParser.ExprContext):
+                self.ir_instructions.append(IrPop())
+        self.ir_instructions.append(IrBranch("br", loopLabel))
+        self.ir_instructions.append(IrLabel(endLabel))
+        self.loopStart.pop()
+        self.loopEnd.pop()
+        
+    @overrides
+    def visitForDeclareStatement(self, ctx:ExprParser.ForDeclareStatementContext):
+        self._loop("for", ctx.pre, ctx.cond, ctx.statement(), ctx.post)
+        self.ir_instructions.extend([IrPop()] * self.ni.funcs[self.curFuncName].blockSlots[ctx])
+    
+    @overrides
+    def visitForNaiveStatement(self, ctx):
+        self._loop("for", ctx.pre, ctx.cond, ctx.statement(), ctx.post)
+    
+    @overrides
+    def visitWhileStatement(self, ctx):
+        self._loop("while", None, ctx.expr(), ctx.statement(), None)
+    
+    @overrides
+    def visitDoWhileStatement(self, ctx):
+        self._loop("dowhile", ctx.statement(), ctx.expr(), ctx.statement(), None)
+    
+    @overrides
+    def visitBreakStatement(self, ctx):
+        self.ir_instructions.append(IrBranch("br", self.breakLabel))
+    
+    @overrides
+    def visitContinueStatement(self, ctx):
+        self.ir_instructions.append(IrBranch("br", self.continueLabel))
+    
+    @overrides
     def visitBlock(self, ctx):
         self.visitChildren(ctx)
         self.ir_instructions.extend([IrPop()] * self.ni.funcs[self.curFuncName].blockSlots[ctx])

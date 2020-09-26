@@ -24,11 +24,12 @@ blockitem
 
 statement
     : 'return' expr ';'   # RetStatement
-    | expr? ';'           # ExprStatement
+    | expr ';'            # ExprStatement
+    | ';'                 # NullStatement
     | block               # BlockStatement
     | 'if' '(' expr ')' thens=statement ('else' elses=statement)? # IfStatement     
-    | 'for' '(' expr? ';' expr? ';' expr? ')' statement  # forNaiveStatement
-    | 'for' '(' declaration expr? ';' expr? ')' statement  # forDeclareStatement
+    | 'for' '(' pre=expr? ';' cond=expr? ';' post=expr? ')' statement  # forNaiveStatement
+    | 'for' '(' pre=declaration cond=expr? ';' post=expr? ')' statement  # forDeclareStatement
     | 'while' '(' expr ')' statement        # WhileStatement
     | 'do' statement 'while' '(' expr ')' ';'  # doWhileStatement
     | 'break' ';'               # BreakStatement
