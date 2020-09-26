@@ -26,7 +26,13 @@ statement
     : 'return' expr ';'   # RetStatement
     | expr? ';'           # ExprStatement
     | block               # BlockStatement
-    | 'if' '(' expr ')' thens=statement ('else' elses=statement)? # IfStatement         
+    | 'if' '(' expr ')' thens=statement ('else' elses=statement)? # IfStatement     
+    | 'for' '(' expr? ';' expr? ';' expr? ')' statement  # forNaiveStatement
+    | 'for' '(' declaration expr? ';' expr? ')' statement  # forDeclareStatement
+    | 'while' '(' expr ')' statement        # WhileStatement
+    | 'do' statement 'while' '(' expr ')' ';'  # doWhileStatement
+    | 'break' ';'               # BreakStatement
+    | 'continue' ';'            # ContinueStatement
     ;
 
 declaration
