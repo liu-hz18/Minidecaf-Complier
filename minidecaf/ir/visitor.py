@@ -79,11 +79,13 @@ class NameVisitor(ExprVisitor):
         self._curFuncNameInfo.blockSlots[ctx] = self._curNSlots - self._nSlots[-1]
         self._curNSlots = self._nSlots[-1]
     
+    @overrides
     def visitBlock(self, ctx):
         self.enterScope(ctx)
         self.visitChildren(ctx)
         self.exitScope(ctx)
     
+    @overrides
     def visitDeclaration(self, ctx):
         if ctx.expr() is not None:
             ctx.expr().accept(self)
@@ -91,13 +93,15 @@ class NameVisitor(ExprVisitor):
         if varstr in self._v:
             raise Exception(f"redefinition of variable `{varstr}`")
         self.defVar(ctx, varstr, number=1)
-        
+    
+    @overrides
     def visitAtomIdentifier(self, ctx):
         varstr = str(ctx.Identifier().getText())
         if varstr not in self._v:
             raise Exception(f"variable `{varstr}` not declared")
         self.useVar(ctx, varstr)
-        
+    
+    @overrides
     def visitFuncDefine(self, ctx):
         funcName = str(ctx.Identifier().getText())
         if funcName in self.nameInfo.funcs and self.nameInfo.func[funcName].hasDef:
@@ -107,6 +111,7 @@ class NameVisitor(ExprVisitor):
         self.visitChildren(ctx)
         self._curFuncNameInfo = None
         
+    @overrides
     def visitFuncDeclare(self, ctx):
         funcName = str(ctx.Identifier.getText())
         funcNameInfo = FuncNameInfo(hasDef=False)
@@ -114,6 +119,7 @@ class NameVisitor(ExprVisitor):
         if funcName not in self.nameInfo.funcs:
             self.nameInfo.funcs[funcName] = FuncNameInfo
     
+    @overrides
     def visitProgram(self, ctx):
         self.visitChildren(ctx)
         self.nameInfo.freeze()
