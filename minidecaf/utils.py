@@ -31,3 +31,10 @@ oneInsBinaryList = [
     'slt',
     'sgt',
 ]
+branchOps = [
+    'br',
+    'beqz',
+    'bnez',
+    #'beq',
+    #'bne',
+]

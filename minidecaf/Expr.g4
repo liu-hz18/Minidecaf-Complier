@@ -7,19 +7,25 @@ program: func EOF;
 
 func
     : tp Identifier '(' ')' block   # funcDefine
-    | tp Identifier '(' ')' ';'                  # funcDeclare
+    | tp Identifier '(' ')' ';'     # funcDeclare
     ;
 
 tp: 'int';
 
 block
-    : '{' statement* '}'
+    : '{' blockitem* '}'
     ;
+
+blockitem
+    : statement           # SingleStatement
+    | declaration         # DeclareStatement
+    ;
+
 
 statement
     : 'return' expr ';'   # RetStatement
     | expr? ';'           # ExprStatement
-    | declaration         # DeclareStatement
+    | 'if' '(' expr ')' statement ('else' statement)? # ifStatement         
     ;
 
 declaration
@@ -29,9 +35,15 @@ declaration
 expr: assignment;
 
 assignment
-    : logicalOr                     # SingleAssign
+    : conditional                     # SingleAssign
     | Identifier '=' expr           # ComplexAssign
     ;
+
+conditional
+    : logicalOr
+    | logicalOr '?' expr ':' conditional
+    ;
+
 
 logicalOr
     : logicalAnd                    # SingleOr

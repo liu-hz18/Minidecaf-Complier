@@ -72,4 +72,19 @@ class IrGlobalSymbol(IrBaseInstraction):
     
     def __str_(self):
         return f"globalsymbol {self.symbol}"
+   
+class IrLabel(IrBaseInstraction):
+    def __init__(self, label: str):
+        self.label = label
     
+    def __str__(self):
+        return f"{self.label}:"
+    
+class IrBranch(IrBaseInstraction):
+    def __init__(self, op, label:str):
+        assert op in branchOps
+        self.op = op
+        self.label = label
+        
+    def __str__(self):
+        return f"{self.op} {self.label}"

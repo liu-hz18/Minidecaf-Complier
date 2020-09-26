@@ -1,4 +1,5 @@
 from typing import List
+import sys
 
 from ..ir.ir_instructions import *
 from ..ir.visitor import StackIRVisitor
@@ -7,7 +8,10 @@ from .asm_format import *
 
 class AsmGenerator:
     def __init__(self, outfile:str):
-        self.fout = open(outfile, 'w')
+        if outfile is not None:
+            self.fout = open(outfile, 'w')
+        else:
+            self.fout = sys.stdout
         self._curFuncName = None
         self.typeFuncMap = { 
             IrRet: self.genRet,
@@ -22,7 +26,8 @@ class AsmGenerator:
         }
         
     def close(self):
-        self.fout.close()
+        if self.fout is not sys.stdout:
+            self.fout.close()
         
     def printCommandList(self, commands: List[AsmInstruction]):
         for command in commands:
@@ -113,6 +118,6 @@ class AsmGenerator:
         )
 
     def generate(self, ir_visitor):
-        print(ir_visitor.getIR())
+        # print(ir_visitor.getIR())
         for function in ir_visitor.funcs:
             self.genFunction(function)

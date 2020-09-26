@@ -13,7 +13,7 @@ from .asm.asm_gen import AsmGenerator
 def parseArgs():
     parser = argparse.ArgumentParser(description='Minidecaf compiler step 1')
     parser.add_argument("infile", type=str, help='the inpue C file')
-    parser.add_argument("outfile", type=str, default='a.out', help='the output .asm file')
+    parser.add_argument("--outfile", type=str, default=None, required=False, help='the output .asm file')
     return parser.parse_args()
 
 def Lexer(inputStream):
@@ -24,8 +24,8 @@ def Parser(tokenStream):
     parser = ExprParser(tokenStream)
     parser._errHandler = BailErrorStrategy()
     tree = parser.program()
-    print("Print Tree:")
-    print(tree.toStringTree(recog=parser))
+    #print("Print Tree:")
+    #print(tree.toStringTree(recog=parser))
     return tree
 
 def nameScanner(tree):
@@ -39,21 +39,21 @@ def irScanner(tree, nameInfo):
     visitor.visit(tree)
     return visitor
 
-def asmScanner(ir_visitor, outfile):
+def asmScanner(ir_visitor, outfile=None):
     asm_generator = AsmGenerator(outfile=outfile)
     asm_generator.generate(ir_visitor)
     asm_generator.close()
 
 def main():
     args = parseArgs()
-    print("in dir: " + os.path.abspath('.'))
+    #print("in dir: " + os.path.abspath('.'))
     inputStream = FileStream(args.infile)
-    print(inputStream)
+    #print(inputStream)
     tokenStream = Lexer(inputStream)
     tree = Parser(tokenStream)
     nameInfo = nameScanner(tree)
-    print(nameInfo.var)
-    print(nameInfo.funcs)
+    #print(nameInfo.var)
+    #print(nameInfo.funcs)
     ir_visitor = irScanner(tree, nameInfo)
     asmScanner(ir_visitor, args.outfile)
     
