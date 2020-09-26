@@ -5,13 +5,33 @@ import ExprLex;
 
 program: func EOF;
 
-func: tp 'main' '(' ')' '{' statement '}';
+func
+    : tp Identifier '(' ')' block   # funcDefine
+    | tp Identifier '(' ')' ';'                  # funcDeclare
+    ;
 
 tp: 'int';
 
-statement: 'return' expr ';';
+block
+    : '{' statement* '}'
+    ;
 
-expr: logicalOr;
+statement
+    : 'return' expr ';'   # RetStatement
+    | expr? ';'           # ExprStatement
+    | declaration         # DeclareStatement
+    ;
+
+declaration
+    : tp Identifier ('=' expr)? ';'
+    ;
+
+expr: assignment;
+
+assignment
+    : logicalOr                     # SingleAssign
+    | Identifier '=' expr           # ComplexAssign
+    ;
 
 logicalOr
     : logicalAnd                    # SingleOr
@@ -51,6 +71,7 @@ unary
 primary
     : Integer       # atomInteger
     | '(' expr ')'  # ComplexPrimary
+    | Identifier    # atomIdentifier
     ;
 
 // un-op

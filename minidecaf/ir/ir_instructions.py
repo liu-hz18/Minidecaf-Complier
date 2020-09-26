@@ -1,4 +1,4 @@
-
+from typing import List
 from ..utils import *
 
 class IrBaseInstraction():
@@ -35,3 +35,41 @@ class IrBinary(IrBaseInstraction):
     
     def __str__(self):
         return self.op
+
+class IrPop(IrBaseInstraction):
+    def __str__(self):
+        return "pop"
+    
+class IrLoad(IrBaseInstraction):
+    def __str__(self):
+        return "load"
+    
+class IrStore(IrBaseInstraction):
+    def __str__(self):
+        return "store"
+
+class IrFrameAddr(IrBaseInstraction):
+    def __init__(self, offset:int):
+        assert offset < 0
+        self.offset = offset
+
+    def __str__(self):
+        return f"frameaddr {self.offset}"
+
+class IrFunction(IrBaseInstraction):
+    def __init__(self, name:str, nParams:int, instructions:List[IrBaseInstraction]):
+        self.name = name
+        self.nParams = nParams
+        self.instr = instructions
+    
+    def __str__(self):
+        body = '\n\t'.join(self.instr)
+        return f"{self.name}({self.nParams}):\n{body}"
+
+class IrGlobalSymbol(IrBaseInstraction):
+    def __init__(self, symbol:str):
+        self.symbol = symbol
+    
+    def __str_(self):
+        return f"globalsymbol {self.symbol}"
+    

@@ -6,7 +6,7 @@ from antlr4 import *
 
 from .generated.ExprLexer import ExprLexer
 from .generated.ExprParser import ExprParser
-from .ir.visitor import StackIRVisitor
+from .ir.visitor import StackIRVisitor, NameVisitor
 from .asm.asm_gen import AsmGenerator
 
 
@@ -28,13 +28,18 @@ def Parser(tokenStream):
     print(tree.toStringTree(recog=parser))
     return tree
 
-def irGenerator(tree):
-    visitor = StackIRVisitor()
+def nameScanner(tree):
+    nameVisitor = NameVisitor()
+    nameVisitor.visit(tree)
+    nameInfo = nameVisitor.nameInfo
+    return nameInfo
+
+def irScanner(tree, nameInfo):
+    visitor = StackIRVisitor(nameInfo)
     visitor.visit(tree)
     return visitor
 
-
-def asmGenerator(ir_visitor, outfile):
+def asmScanner(ir_visitor, outfile):
     asm_generator = AsmGenerator(outfile=outfile)
     asm_generator.generate(ir_visitor)
     asm_generator.close()
@@ -46,6 +51,10 @@ def main():
     print(inputStream)
     tokenStream = Lexer(inputStream)
     tree = Parser(tokenStream)
-    ir_visitor = irGenerator(tree)
-    asmGenerator(ir_visitor, args.outfile)
+    nameInfo = nameScanner(tree)
+    print(nameInfo.var)
+    print(nameInfo.funcs)
+    ir_visitor = irScanner(tree, nameInfo)
+    asmScanner(ir_visitor, args.outfile)
+    
 

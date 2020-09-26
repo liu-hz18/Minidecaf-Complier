@@ -1,5 +1,5 @@
 INT_BYTES = 4
-MAX_INT = 2**(INT_BYTES*8-1) - 1
+MAX_INT = 2**(INT_BYTES*8-1)
 #MIN_INT = -2**(INT_BYTES*8)
 MIN_INT = 0
 unAryMap = {

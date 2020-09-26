@@ -15,8 +15,15 @@ class AsmLabel(AsmBase):
     
 class AsmComment(AsmBase):
     def __str__(self):
-        return f"\t#{self.s}"
+        return f"\t# {self.s}"
     
 class AsmDirective(AsmBase):
     def __str__(self):
         return f"\t{self.s}"
+
+class AsmBlank(AsmBase):
+    def __init__(self):
+        pass
+        
+    def __str__(self):
+        return f""

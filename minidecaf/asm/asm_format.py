@@ -15,7 +15,7 @@ def push_im(val):
 
 @AsmFormatter
 def push_reg(reg):
-    return [f"addi sp, sp, -{INT_BYRES}", f"sw {reg}, 0(sp)"]
+    return [f"addi sp, sp, -{INT_BYTES}", f"sw {reg}, 0(sp)"]
 
 
 @AsmFormatter
@@ -108,4 +108,36 @@ def land():
         f"and t1, t1, t2",
         f"addi sp, sp, {INT_BYTES}",
         f"sw t1, 0(sp)"
+    ]
+
+@AsmFormatter
+def frameaddr(offset:int):
+    return [
+        f"addi sp, sp, -{INT_BYTES}",
+        f"addi t1, fp, {offset}",
+        f"sw t1, 0(sp)",
+    ]
+
+@AsmFormatter
+def load():
+    return [
+        f"lw t1, 0(sp)",
+        f"lw t1, 0(t1)",
+        f"sw t1, 0(sp)",
+    ]
+
+@AsmFormatter
+def store():
+    return [
+        f"lw t1, 4(sp)",
+        f"lw t2, 0(sp)",
+        f"addi sp, sp, {INT_BYTES}",
+        f"sw t1, 0(t2)"
+    ]
+
+
+@AsmFormatter
+def ret(funcname:str):
+    return [
+        f"j {funcname}_exit"
     ]
