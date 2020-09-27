@@ -1,10 +1,12 @@
-from ..generated.ExprVisitor import ExprVisitor
-from ..generated.ExprParser import ExprParser
-from .ir_instructions import *
 from overrides import overrides
 from copy import deepcopy
 import sys
 from ast import literal_eval
+
+from ..generated.ExprVisitor import ExprVisitor
+from ..generated.ExprParser import ExprParser
+from .ir_instructions import *
+
 
 class Variable():
     _var_counter = {}
