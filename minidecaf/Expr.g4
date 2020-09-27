@@ -3,11 +3,24 @@ grammar Expr;
 
 import ExprLex;
 
-program: func EOF;
+program: globalDeclare+ EOF;
+
+globalDeclare
+    : func          # funcGlobalDeclare
+    | declaration   # symbolGlobalDeclare
+    ;
 
 func
-    : tp Identifier '(' ')' block   # funcDefine
-    | tp Identifier '(' ')' ';'     # funcDeclare
+    : tp Identifier '(' paramlist ')' block   # funcDefine
+    | tp Identifier '(' paramlist ')' ';'     # funcDeclare
+    ;
+
+paramlist
+    : (paramDeclare (',' paramDeclare)*)?
+    ;
+
+paramDeclare
+    : tp Identifier
     ;
 
 tp: 'int';
@@ -20,7 +33,6 @@ blockitem
     : statement           # SingleStatement
     | declaration         # DeclareStatement
     ;
-
 
 statement
     : 'return' expr ';'   # RetStatement
@@ -38,6 +50,10 @@ statement
 
 declaration
     : tp Identifier ('=' expr)? ';'
+    ;
+
+exprlist
+    : (expr (',' expr)*)?
     ;
 
 expr: assignment;
@@ -83,8 +99,13 @@ multiplicative
     ;
 
 unary
-    : primary             # SingleUnary
+    : postfix             # SingleUnary
     | unOperator unary    # ComplexUnary
+    ;
+
+postfix
+    : primary                       # SinglePostfix
+    | Identifier '(' exprlist ')'   # ComplexPostfix
     ;
 
 primary

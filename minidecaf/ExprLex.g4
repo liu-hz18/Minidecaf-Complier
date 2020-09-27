@@ -22,7 +22,7 @@ Punctuator :
 fragment IdentLead : [a-zA-Z_];
 fragment WhitespaceChar : [ \t\n\r];
 fragment Digit : [0-9];
-fragment WordChar : [0-9a-zA-Z];
+fragment WordChar : [0-9a-zA-Z_];
 
 Whitespace : WhitespaceChar+ -> skip ;
 Integer : Digit+ ;

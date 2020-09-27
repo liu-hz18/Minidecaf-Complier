@@ -1,4 +1,5 @@
 from typing import List
+import sys
 from ..utils import *
 
 class IrBaseInstraction():
@@ -57,22 +58,39 @@ class IrFrameAddr(IrBaseInstraction):
         return f"\tframeaddr {self.offset}"
 
 class IrFunction(IrBaseInstraction):
-    def __init__(self, name:str, nParams:int, instructions:List[IrBaseInstraction]):
+    def __init__(self, name:str, nParams:int, instructions:List[IrBaseInstraction], param_type:List[str]):
         self.name = name
         self.nParams = nParams
+        self.param_type = param_type
         self.instr = instructions
     
     def __str__(self):
-        body = '\n\t'.join(self.instr)
+        body = '\n'.join(map(str, self.instr))
         return f"{self.name}({self.nParams}):\n{body}"
+    
+    def __hash__(self):
+        return hash((self.name, self.nParams, ','.join(self.param_type)))
+    
+    def __eq__(self, other):
+        return self.name == other.name and self.nParams == other.nParams and \
+               self.param_type == other.param_type
 
 class IrGlobalSymbol(IrBaseInstraction):
-    def __init__(self, symbol:str):
-        self.symbol = symbol
+    def __init__(self, label:str, value:int=None, size:int=INT_BYTES):
+        self.label = label
+        self.value = value
+        self.size = size
     
-    def __str_(self):
-        return f"globalsymbol {self.symbol}"
-   
+    def __str__(self):
+        return f"globalsymbol: {self.label}={self.value}(size={self.size})"
+
+class IrGlobalAddr(IrBaseInstraction):
+    def __init__(self, label:str):
+        self.label = label
+    
+    def __str__(self):
+        return f"\tglobaladdr {self.label}"
+
 class IrLabel(IrBaseInstraction):
     def __init__(self, label: str):
         self.label = label
@@ -88,3 +106,10 @@ class IrBranch(IrBaseInstraction):
         
     def __str__(self):
         return f"\t{self.op} {self.label}"
+
+class IrCall(IrBaseInstraction):
+    def __init__(self, label):
+        self.label = label
+        
+    def __str__(self):
+        return f"\tcall {self.label}"

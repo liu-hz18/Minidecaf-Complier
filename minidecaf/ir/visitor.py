@@ -4,6 +4,7 @@ from .ir_instructions import *
 from overrides import overrides
 from copy import deepcopy
 import sys
+from ast import literal_eval
 
 class Variable():
     _var_counter = {}
@@ -30,6 +31,7 @@ class NameInfo():
     def __init__(self):
         self.var = {}
         self.funcs = {}
+        self.globals = {}
     
     def freeze(self):
         for funcNameInfo in self.funcs.values():
@@ -48,6 +50,12 @@ class FuncNameInfo():
     def bind(self, varstr, var, pos):
         self.var[varstr] = var
         self.pos[varstr] = pos
+    
+    def __str__(self):
+        return str(self.var) + str(self.hasDef)
+    
+    def __repr__(self):
+        return self.__str__()
     
     def __getitem__(self, varstr):
         return self.var[varstr]
@@ -114,6 +122,32 @@ class NameVisitor(ExprVisitor):
         self._nSlots.pop()
     
     @overrides
+    def visitSymbolGlobalDeclare(self, ctx):
+        ctx = ctx.declaration()
+        init = None
+        if ctx.expr() is not None:
+            expr = str(ctx.expr().getText())
+            try:
+                init = literal_eval(expr)
+            except:
+                raise Exception("global symbol initialization must be contant")
+        var = str(ctx.Identifier().getText())
+        if var in self.nameInfo.funcs:
+            raise Exception(f"function <{var}(...)> redeclared as gloabl variable")
+        v = Variable(var, None, INT_BYTES)
+        globalIr = IrGlobalSymbol(var, init, INT_BYTES)
+        # check for redefinition
+        if var in self._v.top():
+            prevGlobalIr = self.nameInfo.globals[var]
+            if prevGlobalIr.value is not None and globalIr.value is not None:
+                raise Exception(f"global symbol {var} redefinition")
+            if globalIr.value is not None:
+                self.nameInfo.globals[var].value = value
+        else:
+            self._v[var] = v
+            self.nameInfo.globals[var] = globalIr
+    
+    @overrides
     def visitBlock(self, ctx):
         self.enterScope(ctx)
         self.visitChildren(ctx)
@@ -142,24 +176,32 @@ class NameVisitor(ExprVisitor):
         self.useVar(ctx, varstr)
     
     @overrides
+    def visitParamDeclare(self, ctx):
+        varstr = str(ctx.Identifier().getText())
+        self.defVar(ctx, varstr, number=1)
+
+    @overrides
     def visitFuncDefine(self, ctx):
         funcName = str(ctx.Identifier().getText())
-        if funcName in self.nameInfo.funcs and self.nameInfo.func[funcName].hasDef:
+        if funcName in self.nameInfo.funcs and self.nameInfo.funcs[funcName].hasDef:
             raise Exception(f"redefnition of function `{funcName}`")
         funcNameInfo = FuncNameInfo(hasDef=True)
         self._curFuncNameInfo = self.nameInfo.funcs[funcName] = funcNameInfo
         self.enterScope(ctx.block())
+        self.visitChildren(ctx.paramlist())
         self.visitChildren(ctx.block())
         self.exitScope(ctx.block())
         self._curFuncNameInfo = None
         
     @overrides
     def visitFuncDeclare(self, ctx):
-        funcName = str(ctx.Identifier.getText())
+        funcName = str(ctx.Identifier().getText())
         funcNameInfo = FuncNameInfo(hasDef=False)
-        # TODO: slove redeclaration
+        # slove redeclaration
+        for func in self.nameInfo.globals:
+            raise Exception(f"global variable {func} redeclared as function")
         if funcName not in self.nameInfo.funcs:
-            self.nameInfo.funcs[funcName] = FuncNameInfo
+            self.nameInfo.funcs[funcName] = funcNameInfo
     
     @overrides
     def visitProgram(self, ctx):
@@ -178,8 +220,18 @@ class StackIRVisitor(ExprVisitor):
         self.ni = nameInfo
         self.loopStart = []
         self.loopEnd = []
+        self.declared_func = []
         # labels
+        self.initGlobalIrs()
     
+    def initGlobalIrs(self):
+        self.glob_def, self.glob_dec = [], []
+        for glob in self.ni.globals.values():
+            if glob.value is not None:
+                self.glob_def.append(glob)
+            else:
+                self.glob_dec.append(glob)
+
     @property
     def breakLabel(self):
         if len(self.loopEnd) <= 0:
@@ -228,6 +280,25 @@ class StackIRVisitor(ExprVisitor):
         self.ir_instructions.append(IrLabel(endLabel))
         self.loopStart.pop()
         self.loopEnd.pop()
+    
+    def checkFuncCall(self, funcName, argc):
+        for fun in self.declared_func:
+            if funcName == fun.name:
+                if argc != fun.nParams:
+                    raise Exception(f"function <{funcDec}({argc})> not defined.")
+        for fun in self.funcs:
+            if funcName == fun.name:
+                if argc != fun.nParams:
+                    raise Exception(f"function <{funcDec}({argc})> not defined.")
+    
+    @overrides
+    def visitComplexPostfix(self, ctx:ExprParser.ComplexPostfixContext):
+        funcName = str(ctx.Identifier().getText())
+        args = ctx.exprlist().expr()
+        self.checkFuncCall(funcName, len(args))
+        for arg in reversed(args):
+            arg.accept(self)
+        self.ir_instructions.append(IrCall(funcName))
         
     @overrides
     def visitForDeclareStatement(self, ctx:ExprParser.ForDeclareStatementContext):
@@ -259,17 +330,64 @@ class StackIRVisitor(ExprVisitor):
         self.visitChildren(ctx)
         self.ir_instructions.extend([IrPop()] * self.ni.funcs[self.curFuncName].blockSlots[ctx])
 
+    def _declareType(self, ctx):
+        baseType = str(ctx.tp().getText())
+        return baseType
+
+    def _paramList(self, ctx):
+        types, names = [], []
+        for declare in ctx.paramDeclare():
+            paramType = self._declareType(declare)
+            paramName = str(declare.Identifier().getText())
+            types.append(paramType)
+            names.append(paramName)
+        return types, names
+    
+    def checkFuncDeclare(self, func:IrFunction):
+        funcDec = func.name
+        for fun in self.declared_func:
+            if funcDec == fun.name:
+                if func != fun:
+                    raise Exception(f"function <{funcDec}(...)> declaration and definition don't match.")
+
+    def checkFuncDefine(self, func:IrFunction):
+        funcDec = func.name
+        for fun in self.funcs:
+            if funcDec == fun.name:
+                if func != fun:
+                    raise Exception(f"function <{funcDec}(...)> declaration and definition don't match.")
+    
     @overrides
     def visitFuncDefine(self, ctx:ExprParser.FuncDefineContext):
+        print("in func define", file=sys.stderr)
         func = str(ctx.Identifier().getText())
         # nParams
+        param_types, param_names = self._paramList(ctx.paramlist())
+        nParams = len(param_names)
+        if len(set(param_names)) != nParams:
+            raise Exception(f"function <{func}> parameter conflicted.")
         # enter
         self.curFuncName = func
-        self.curFuncParams = 0
+        self.curFuncParams = nParams
         self.ir_instructions = []
         self.visitChildren(ctx)
+        function = IrFunction(func, nParams, self.ir_instructions, param_types)
+        self.checkFuncDeclare(function)
         # exit
-        self.funcs.append(IrFunction(self.curFuncName, self.curFuncParams, self.ir_instructions))
+        self.funcs.append(function)
+        self.curFuncName = None
+    
+    @overrides
+    def visitFuncDeclare(self, ctx:ExprParser.FuncDeclareContext):
+        funcDec = str(ctx.Identifier().getText())
+        # nParams
+        param_types, param_names = self._paramList(ctx.paramlist())
+        nParams = len(param_names)
+        if len(set(param_names)) != nParams:
+            raise Exception(f"function <{func}> parameter conflicted.")
+        function = IrFunction(funcDec, nParams, [], param_types)
+        self.checkFuncDefine(function)
+        self.declared_func.append(function)
     
     @overrides
     def visitComplexCond(self, ctx:ExprParser.ComplexCondContext):
@@ -301,10 +419,6 @@ class StackIRVisitor(ExprVisitor):
             self.ir_instructions.append(IrBranch("beqz", endLabel))
             ctx.thens.accept(self)
             self.ir_instructions.append(IrLabel(endLabel))
-
-    @overrides
-    def visitFuncDeclare(self, ctx:ExprParser.FuncDeclareContext):
-        pass
     
     @overrides
     def visitRetStatement(self, ctx:ExprParser.RetStatementContext):
@@ -315,7 +429,11 @@ class StackIRVisitor(ExprVisitor):
     def visitExprStatement(self, ctx:ExprParser.ExprStatementContext):
         self.visitChildren(ctx)
         self.ir_instructions.append(IrPop())
-    
+   
+    @overrides
+    def visitSymbolGlobalDeclare(self, ctx):
+        pass
+
     @overrides
     def visitDeclaration(self, ctx:ExprParser.DeclareStatementContext):
         var = self.ni[ctx.Identifier()]
@@ -326,6 +444,8 @@ class StackIRVisitor(ExprVisitor):
     
     def _findIdentifier(self, ctx):
         if isinstance(ctx, ExprParser.SingleUnaryContext):
+            return self._findIdentifier(ctx.postfix())
+        elif isinstance(ctx, ExprParser.SinglePostfixContext):
             return self._findIdentifier(ctx.primary())
         elif isinstance(ctx, ExprParser.PrimaryContext):
             return ctx.Identifier()
@@ -336,7 +456,7 @@ class StackIRVisitor(ExprVisitor):
         var = self.ni[self._findIdentifier(ctx.unary())]
         # ident
         if var.offset is None:
-            self.ir_instructions.append(IrGlobalSymbol(var.ident))
+            self.ir_instructions.append(IrGlobalAddr(var.ident))
         else:
             self.ir_instructions.append(IrFrameAddr(var.offset))
         self.ir_instructions.append(IrStore())
@@ -344,7 +464,10 @@ class StackIRVisitor(ExprVisitor):
     @overrides
     def visitAtomIdentifier(self, ctx:ExprParser.AtomIdentifierContext):
         var = self.ni[ctx.Identifier()]
-        self.ir_instructions.append(IrFrameAddr(var.offset))
+        if var.offset is None:
+            self.ir_instructions.append(IrGlobalAddr(var.ident))
+        else:
+            self.ir_instructions.append(IrFrameAddr(var.offset))
         self.ir_instructions.append(IrLoad())
     
     @overrides
@@ -401,4 +524,6 @@ class StackIRVisitor(ExprVisitor):
         self.visitChildren(ctx)    
     
     def getIR(self):
-        return "main:\n" + '\n'.join(map(str, self.ir_instructions))
+        return '\n'.join([
+            str(func) for func in self.funcs
+        ])

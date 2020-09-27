@@ -153,3 +153,19 @@ def br_cond(op:str, label:str):
         f"addi sp, sp, 4",
         f"{op} t1, {label}",
     ]
+
+@AsmFormatter
+def call(funclabel:str, num_param:int):
+    return [
+        f"call {funclabel}",
+        f"addi sp, sp, {INT_BYTES*(num_param-1)}",
+        f"sw a0, 0(sp)",
+    ]
+
+@AsmFormatter
+def globaladdr(label:str):
+    return [
+        f"addi sp, sp, -{INT_BYTES}",
+        f"la t1, {label}",
+        f"sw t1, 0(sp)",
+    ]
