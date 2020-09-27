@@ -359,7 +359,6 @@ class StackIRVisitor(ExprVisitor):
     
     @overrides
     def visitFuncDefine(self, ctx:ExprParser.FuncDefineContext):
-        print("in func define", file=sys.stderr)
         func = str(ctx.Identifier().getText())
         # nParams
         param_types, param_names = self._paramList(ctx.paramlist())
