@@ -1,5 +1,6 @@
 __pycache__
 .antlr
+generated
 generated_java
 .vscode
 *.s

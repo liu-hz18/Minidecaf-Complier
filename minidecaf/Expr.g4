@@ -23,7 +23,10 @@ paramDeclare
     : tp Identifier
     ;
 
-tp: 'int';
+tp
+    : 'int'         # scalar
+    | tp '*'        # pointer
+    ;
 
 block
     : '{' blockitem* '}'
@@ -49,7 +52,7 @@ statement
     ;
 
 declaration
-    : tp Identifier ('=' expr)? ';'
+    : tp Identifier ('[' Integer ']')* ('=' expr)? ';'
     ;
 
 exprlist
@@ -60,7 +63,7 @@ expr: assignment;
 
 assignment
     : conditional                     # SingleAssign
-    | unary '=' expr             # ComplexAssign
+    | unary '=' expr                  # ComplexAssign
     ;
 
 conditional
@@ -101,11 +104,13 @@ multiplicative
 unary
     : postfix             # SingleUnary
     | unOperator unary    # ComplexUnary
+    | '(' tp ')' unary    # Cast
     ;
 
 postfix
     : primary                       # SinglePostfix
     | Identifier '(' exprlist ')'   # ComplexPostfix
+    | postfix '[' expr ']'          # LoadIndex
     ;
 
 primary
@@ -116,7 +121,7 @@ primary
 
 // un-op
 unOperator: 
-    '-' | '~' | '!'
+    '-' | '~' | '!' | '&' | '*'
     ;
 
 // bi-op

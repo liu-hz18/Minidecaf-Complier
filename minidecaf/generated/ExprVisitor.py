@@ -44,8 +44,13 @@ class ExprVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ExprParser#tp.
-    def visitTp(self, ctx:ExprParser.TpContext):
+    # Visit a parse tree produced by ExprParser#scalar.
+    def visitScalar(self, ctx:ExprParser.ScalarContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ExprParser#pointer.
+    def visitPointer(self, ctx:ExprParser.PointerContext):
         return self.visitChildren(ctx)
 
 
@@ -224,13 +229,23 @@ class ExprVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ExprParser#SinglePostfix.
-    def visitSinglePostfix(self, ctx:ExprParser.SinglePostfixContext):
+    # Visit a parse tree produced by ExprParser#Cast.
+    def visitCast(self, ctx:ExprParser.CastContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ExprParser#LoadIndex.
+    def visitLoadIndex(self, ctx:ExprParser.LoadIndexContext):
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by ExprParser#ComplexPostfix.
     def visitComplexPostfix(self, ctx:ExprParser.ComplexPostfixContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ExprParser#SinglePostfix.
+    def visitSinglePostfix(self, ctx:ExprParser.SinglePostfixContext):
         return self.visitChildren(ctx)
 
 
