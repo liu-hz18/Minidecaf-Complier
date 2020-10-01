@@ -1,38 +1,14 @@
 from overrides import overrides
-from copy import deepcopy
-import sys
 from ast import literal_eval
 
 from ..generated.ExprVisitor import ExprVisitor
-from ..generated.ExprParser import ExprParser
 from .ir_instructions import *
 from .type import *
 from .rule import *
 from .name_visitor import NameInfo
 from .variable import Variable
-
-class TypeInfo():
-    def __init__(self):
-        self.ctx_type = {}
-        self.ctx_location = {}
-        self.func_ret_type = {}
-        self.func_param_type = {}
-        
-    def getLvalueLocation(self, ctx):
-        return self.ctx_location[ctx]
-    
-    def setLvalueLocation(self, ctx, loc:list):
-        self.ctx_location[ctx] = loc
-        
-    def __getitem__(self, ctx):
-        return self.ctx_type[ctx]
-    
-    def __setitem__(self, ctx, tp):
-        self.ctx_type[ctx] = tp
-        
-    def __str__(self):
-        return "\tctx_type: " + str(self.ctx_type) + "\n\tctx_location: " + str(self.ctx_location)
-
+from .info import *
+from .lvalue_visitor import LValueVisitor
 
 class TypeVisitor(ExprVisitor):
     def __init__(self, name_info:NameInfo):
@@ -279,26 +255,3 @@ class TypeVisitor(ExprVisitor):
         returnRule(func_ret_type, callee_real_type)
 
     
-class LValueVisitor(ExprVisitor):
-    def __init__(self, name_info:NameInfo, type_info:TypeInfo):
-        self.name_info = name_info
-        self.type_info = type_info
-    
-    def visitAtomIdentifier(self, ctx):
-        variable = self.name_info[ctx.Identifier()]
-        if variable.offset is None:
-            return [IrGlobalAddr(variable.ident)]
-        else:
-            return [IrFrameAddr(variable.offset)]
-    
-    def visitComplexUnary(self, ctx):
-        op = str(ctx.unOperator().getText())
-        if op == '*':
-            return [ctx.unary()]
-    
-    def visitComplexPrimary(self, ctx):
-        return ctx.expr().accept(self)
-    
-    def visitArrayIndex(self, ctx):
-        total_size = self.type_info[ctx.postfix()].base.sizeof()
-        return [ctx.postfix(), ctx.expr(), IrConst(total_size), IrBinary('*'), IrBinary('+')]

@@ -10,6 +10,7 @@ from .ir.visitor import StackIRVisitor
 from .ir.type_visitor import TypeVisitor
 from .ir.name_visitor import NameVisitor
 from .asm.asm_gen import AsmGenerator
+from .ir.info import NameInfo, TypeInfo
 
 
 def parseArgs():
@@ -52,15 +53,10 @@ def asmScanner(ir_visitor, outfile=None):
 
 def main():
     args = parseArgs()
-    #print("in dir: " + os.path.abspath('.'))
     inputStream = FileStream(args.infile)
-    #print(inputStream)
     tokenStream = Lexer(inputStream)
     tree = Parser(tokenStream)
     nameInfo = nameScanner(tree)
     typeInfo = typeScanner(tree, nameInfo)
-    #print(nameInfo.var)
-    #print(nameInfo.funcs)
     ir_visitor = irScanner(tree, nameInfo, typeInfo)
     asmScanner(ir_visitor, args.outfile)
-

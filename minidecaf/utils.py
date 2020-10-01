@@ -37,6 +37,4 @@ branchOps = [
     'br',
     'beqz',
     'bnez',
-    #'beq',
-    #'bne',
 ]

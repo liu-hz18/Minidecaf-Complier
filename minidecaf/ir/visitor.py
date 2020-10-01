@@ -8,6 +8,7 @@ from ..generated.ExprParser import ExprParser
 from .ir_instructions import *
 from .name_visitor import *
 from .type_visitor import *
+from .info import *
 
 class StackIRVisitor(ExprVisitor):
     label_counter = {}
