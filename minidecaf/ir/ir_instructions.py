@@ -1,5 +1,6 @@
 from typing import List
 import sys
+from .variable import Variable
 from ..utils import *
 
 class IrBaseInstraction():
@@ -58,11 +59,12 @@ class IrFrameAddr(IrBaseInstraction):
         return f"\tframeaddr {self.offset}"
 
 class IrFunction(IrBaseInstraction):
-    def __init__(self, name:str, nParams:int, instructions:List[IrBaseInstraction], param_type:List[str]):
+    def __init__(self, name:str, nParams:int, instructions:List[IrBaseInstraction], param_type:List[str], ret_type:str):
         self.name = name
         self.nParams = nParams
         self.param_type = param_type
         self.instr = instructions
+        self.ret_type = ret_type
     
     def __str__(self):
         body = '\n'.join(map(str, self.instr))
@@ -76,9 +78,10 @@ class IrFunction(IrBaseInstraction):
                self.param_type == other.param_type
 
 class IrGlobalSymbol(IrBaseInstraction):
-    def __init__(self, label:str, value:int=None, size:int=INT_BYTES):
+    def __init__(self, label:str, value:int=None, variable:Variable=None, size:int=INT_BYTES):
         self.label = label
         self.value = value
+        self.variable = variable
         self.size = size
     
     def __str__(self):

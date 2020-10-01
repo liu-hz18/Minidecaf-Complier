@@ -26,6 +26,7 @@ class AsmGenerator:
             IrLabel: self.genLabel,
             IrCall: self.genCall,
             IrGlobalAddr: self.genGlobalSymbolUse,
+            
         }
         
     def close(self):

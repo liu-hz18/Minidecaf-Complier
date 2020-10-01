@@ -88,7 +88,7 @@ equality
 
 relational
     : additive                      # SingleRe
-    | relational relOperator additive  # ComplexRe
+    | relational  additive          # ComplexRe
     ;
 
 additive
@@ -104,13 +104,13 @@ multiplicative
 unary
     : postfix             # SingleUnary
     | unOperator unary    # ComplexUnary
-    | '(' tp ')' unary    # Cast
+    | ('(' tp ')') unary    # Cast
     ;
 
 postfix
     : primary                       # SinglePostfix
     | Identifier '(' exprlist ')'   # ComplexPostfix
-    | postfix '[' expr ']'          # LoadIndex
+    | postfix '[' expr ']'          # ArrayIndex
     ;
 
 primary

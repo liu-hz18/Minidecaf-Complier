@@ -6,6 +6,8 @@ unAryMap = {
     '~': 'not',
     '!': 'seqz',
     '-': 'neg',
+    '&': 'addrof',
+    '*': 'deref'
 }
 binaryMap = {
     '+': 'add',
