@@ -58,7 +58,7 @@
 
    继承`ExprVisitor`实现`StackIRVisitor`, 实现了`visitStatement`和`visitExpr`两个函数。`AST`遍历到`Statement`时，只需要生成`IrRet`；遍历到`IrExpr`时，只需要将`IrConst(int(ctx.Integer().getText()))`生成。
 
-   
+   生成的同时进行**数值检查**，当数值属于`[0, 2^31-1]`是视为正确，否则报错．
 
 3. ##### 将IR转换为RISC-V语言
 
