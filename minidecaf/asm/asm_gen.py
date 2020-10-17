@@ -155,7 +155,7 @@ class AsmGenerator:
             self.genGlobalSymbolDeclare(glob_instr)
 
     def generate(self, ir_visitor):
-        print(ir_visitor.getIR(), file=sys.stderr)
+        # print(ir_visitor.getIR(), file=sys.stderr)
         self.glob_def = ir_visitor.glob_def
         self.glob_dec = ir_visitor.glob_dec
         self.funcs = ir_visitor.funcs
